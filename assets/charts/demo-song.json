@@ -1,0 +1,53 @@
+{
+  "info": {
+    "title": "Demo Track",
+    "artist": "Game Dev",
+    "bpm": 128,
+    "duration": 60000,
+    "split": 16
+  },
+  "chart": {
+    "normal": [
+      {
+        "time": 0,
+        "topLane": true,
+        "bottomLane": false
+      },
+      {
+        "time": 500,
+        "topLane": false,
+        "bottomLane": true
+      },
+      {
+        "time": 1000,
+        "topLane": true,
+        "bottomLane": false
+      },
+      {
+        "time": 1500,
+        "topLane": false,
+        "bottomLane": true
+      },
+      {
+        "time": 2000,
+        "topLane": true,
+        "bottomLane": true
+      },
+      {
+        "time": 2500,
+        "topLane": false,
+        "bottomLane": false
+      },
+      {
+        "time": 3000,
+        "topLane": true,
+        "bottomLane": false
+      },
+      {
+        "time": 3500,
+        "topLane": false,
+        "bottomLane": true
+      }
+    ]
+  }
+}

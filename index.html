@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rhythm Game - Muse Dash Style</title>
+    <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+    <div id="game-container">
+        <!-- Menu State -->
+        <div id="menu-screen" class="screen active">
+            <div class="menu-content">
+                <h1 class="game-title">Rhythm Dash</h1>
+                <div class="menu-buttons">
+                    <button id="start-btn" class="menu-btn">Start Game</button>
+                    <button id="settings-btn" class="menu-btn">Settings</button>
+                </div>
+                <div class="high-score">High Score: <span id="high-score-value">0</span></div>
+            </div>
+        </div>
+
+        <!-- Game State -->
+        <div id="game-screen" class="screen">
+            <div class="game-ui">
+                <div class="score-area">
+                    <div id="score-display">Score: 0</div>
+                    <div id="combo-counter">Combo: x0</div>
+                </div>
+                <button id="pause-btn" class="pause-button">⏸</button>
+            </div>
+            
+            <div class="game-area">
+                <!-- Top Lane -->
+                <div id="top-lane" class="lane">
+                    <div class="hit-zone"></div>
+                    <div class="note-area"></div>
+                </div>
+                
+                <!-- Character Area -->
+                <div class="character-area">
+                    <div id="character-sprite" class="character"></div>
+                    <div id="judgment-text" class="judgment"></div>
+                </div>
+                
+                <!-- Bottom Lane -->
+                <div id="bottom-lane" class="lane">
+                    <div class="hit-zone"></div>
+                    <div class="note-area"></div>
+                </div>
+            </div>
+            
+            <div class="progress-container">
+                <div id="progress-bar" class="progress-bar"></div>
+            </div>
+        </div>
+
+        <!-- Game Over State -->
+        <div id="game-over-screen" class="screen">
+            <div class="results-content">
+                <h2>Game Over!</h2>
+                <div class="results-stats">
+                    <div class="final-score">Final Score: <span id="final-score">0</span></div>
+                    <div class="accuracy-stats">
+                        <div>Perfect: <span id="perfect-count">0</span></div>
+                        <div>Great: <span id="great-count">0</span></div>
+                        <div>Good: <span id="good-count">0</span></div>
+                        <div>Miss: <span id="miss-count">0</span></div>
+                    </div>
+                    <div class="max-combo">Max Combo: <span id="max-combo">0</span></div>
+                    <div class="grade">Grade: <span id="grade">D</span></div>
+                </div>
+                <div class="results-buttons">
+                    <button id="play-again-btn" class="menu-btn">Play Again</button>
+                    <button id="back-to-menu-btn" class="menu-btn">Back to Menu</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings State -->
+        <div id="settings-screen" class="screen">
+            <div class="settings-content">
+                <h2>Settings</h2>
+                <div class="setting-item">
+                    <label>Master Volume:</label>
+                    <input type="range" id="master-volume" min="0" max="100" value="100">
+                </div>
+                <div class="setting-item">
+                    <label>Music Volume:</label>
+                    <input type="range" id="music-volume" min="0" max="100" value="80">
+                </div>
+                <div class="setting-item">
+                    <label>SFX Volume:</label>
+                    <input type="range" id="sfx-volume" min="0" max="100" value="100">
+                </div>
+                <div class="keybind-info">
+                    <h3>Controls</h3>
+                    <p>Top Lane: D, F keys</p>
+                    <p>Bottom Lane: J, K keys</p>
+                </div>
+                <button id="back-from-settings-btn" class="menu-btn">Back</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- rhy-game library -->
+    <script src="https://cdn.jsdelivr.net/gh/juneekim7/rhy-game@main/dist/rhy-game.min.js"></script>
+    
+    <!-- Game scripts -->
+    <script src="scripts/main.js"></script>
+    <script src="scripts/game-engine.js"></script>
+    <script src="scripts/ui-manager.js"></script>
+</body>
+</html>
