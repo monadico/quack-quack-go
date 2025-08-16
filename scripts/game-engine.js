@@ -8,16 +8,18 @@ class GameEngine {
         this.notes = [];
         this.activeHoldNotes = new Map(); // Track currently held notes
         this.songProgress = 0;
-        this.songDuration = 60000; // 60 seconds demo
-        this.bpm = 128;
+        this.songDuration = 60000; // Will be set from chart
+        this.bpm = 128; // Will be set from chart
         this.noteSpeed = 4; // pixels per frame at 60fps
         this.lastNoteSpawn = 0;
         this.spawnInterval = 800; // milliseconds between notes
         
-        this.demoChart = this.createDemoChart();
+        this.chartLoader = new ChartLoader();
+        this.currentChart = null;
         this.chartIndex = 0;
         this.startTime = null;
         this.travelTime = 3000; // Time for note to travel from spawn to hit zone (ms)
+        this.audioStartTime = null;
     }
 
     createDemoChart() {
@@ -54,7 +56,29 @@ class GameEngine {
         return chart;
     }
 
-    startGame() {
+
+    async loadSong(songPath) {
+        try {
+            console.log('Loading song:', songPath);
+            this.currentChart = await this.chartLoader.loadChart(songPath);
+            this.songDuration = this.currentChart.metadata.duration;
+            console.log('Song loaded successfully:', this.currentChart.metadata.title);
+            return this.currentChart;
+        } catch (error) {
+            console.error('Failed to load song:', error);
+            throw error;
+        }
+    }
+
+    async startGame() {
+        // Load the song first
+        try {
+            await this.loadSong('./songs/feel it.json');
+        } catch (error) {
+            console.error('Failed to load song, using demo chart:', error);
+            this.currentChart = { notes: [] };
+            this.songDuration = 60000;
+        }
         this.isPlaying = true;
         this.isPaused = false;
         this.songProgress = 0;
@@ -70,10 +94,21 @@ class GameEngine {
             this.addHitZoneMarkers();
         }, 100);
         
-        // Start continuous note spawning
-        setTimeout(() => {
-            console.log('Starting continuous note flow...');
-            this.startNoteFlow();
+        // Start audio playback
+        setTimeout(async () => {
+            if (this.chartLoader.getAudio()) {
+                try {
+                    await this.chartLoader.playAudio();
+                    this.audioStartTime = performance.now();
+                    console.log('Audio started');
+                } catch (error) {
+                    console.error('Failed to start audio:', error);
+                }
+            } else {
+                // Fallback to demo flow if no audio
+                console.log('No audio loaded, starting demo note flow...');
+                this.startNoteFlow();
+            }
         }, 1000);
         
         this.gameLoop = requestAnimationFrame(() => this.update());
@@ -105,6 +140,12 @@ class GameEngine {
         
         this.clearAllNotes();
         this.activeHoldNotes.clear();
+        
+        // Stop audio
+        if (this.chartLoader) {
+            this.chartLoader.stopAudio();
+        }
+        
         this.gameStateManager.endGame();
     }
 
@@ -131,18 +172,16 @@ class GameEngine {
     }
 
     spawnNotes(gameTime) {
-        while (this.chartIndex < this.demoChart.length) {
-            const chartNote = this.demoChart[this.chartIndex];
+        if (!this.currentChart || !this.currentChart.notes) {
+            return;
+        }
+
+        while (this.chartIndex < this.currentChart.notes.length) {
+            const chartNote = this.currentChart.notes[this.chartIndex];
             
             if (chartNote.spawnTime <= gameTime) {
-                if (chartNote.topLane) {
-                    this.createNote('top', chartNote.hitTime, chartNote.type, chartNote.duration);
-                    console.log(`Spawned ${chartNote.type} top note at`, gameTime);
-                }
-                if (chartNote.bottomLane) {
-                    this.createNote('bottom', chartNote.hitTime, chartNote.type, chartNote.duration);
-                    console.log(`Spawned ${chartNote.type} bottom note at`, gameTime);
-                }
+                this.createNote(chartNote.lane, chartNote.timestamp, chartNote.type, chartNote.duration);
+                console.log(`Spawned ${chartNote.type} ${chartNote.lane} note at`, gameTime);
                 this.chartIndex++;
             } else {
                 break;
@@ -181,7 +220,7 @@ class GameEngine {
     }
 
     startNoteSliding(note) {
-        // Simple sliding animation like the red box
+        // BPM-based sliding animation
         const slideInterval = setInterval(() => {
             if (note.hit || !note.element.parentElement) {
                 clearInterval(slideInterval);

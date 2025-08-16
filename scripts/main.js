@@ -138,10 +138,15 @@ class GameStateManager {
         }
     }
 
-    startGame() {
+    async startGame() {
         this.resetGame();
         this.setState('game');
-        this.gameEngine.startGame();
+        try {
+            await this.gameEngine.startGame();
+        } catch (error) {
+            console.error('Failed to start game:', error);
+            this.setState('menu');
+        }
     }
 
     pauseGame() {
