@@ -13,7 +13,8 @@ class GameStateManager {
             perfect: 0,
             great: 0,
             good: 0,
-            miss: 0
+            miss: 0,
+            hold: 0
         };
         
         this.init();
@@ -56,6 +57,10 @@ class GameStateManager {
             this.handleKeyInput(e);
         });
 
+        document.addEventListener('keyup', (e) => {
+            this.handleKeyInput(e);
+        });
+
         this.setupMobileControls();
     }
 
@@ -67,14 +72,28 @@ class GameStateManager {
             topLane.addEventListener('touchstart', (e) => {
                 e.preventDefault();
                 if (this.currentState === 'game') {
-                    this.gameEngine.handleInput('top');
+                    this.gameEngine.handleInput('top', 'press');
+                }
+            });
+
+            topLane.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                if (this.currentState === 'game') {
+                    this.gameEngine.handleInput('top', 'release');
                 }
             });
 
             bottomLane.addEventListener('touchstart', (e) => {
                 e.preventDefault();
                 if (this.currentState === 'game') {
-                    this.gameEngine.handleInput('bottom');
+                    this.gameEngine.handleInput('bottom', 'press');
+                }
+            });
+
+            bottomLane.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                if (this.currentState === 'game') {
+                    this.gameEngine.handleInput('bottom', 'release');
                 }
             });
         }
@@ -84,17 +103,21 @@ class GameStateManager {
         if (this.currentState !== 'game') return;
 
         const key = e.key.toLowerCase();
+        const action = e.type === 'keydown' ? 'press' : 'release';
+        
         switch (key) {
             case 'd':
             case 'f':
-                this.gameEngine.handleInput('top');
+                this.gameEngine.handleInput('top', action);
                 break;
             case 'j':
             case 'k':
-                this.gameEngine.handleInput('bottom');
+                this.gameEngine.handleInput('bottom', action);
                 break;
             case 'escape':
-                this.pauseGame();
+                if (action === 'press') {
+                    this.pauseGame();
+                }
                 break;
         }
     }
@@ -137,7 +160,7 @@ class GameStateManager {
         this.scores.current = 0;
         this.scores.combo = 0;
         this.scores.maxCombo = 0;
-        this.stats = { perfect: 0, great: 0, good: 0, miss: 0 };
+        this.stats = { perfect: 0, great: 0, good: 0, miss: 0, hold: 0 };
         this.uiManager.updateScore(0);
         this.uiManager.updateCombo(0);
         this.uiManager.updateProgress(0);

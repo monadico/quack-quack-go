@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>BMS Timing Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        .pattern-viz { font-family: monospace; font-size: 14px; }
+        .note { color: red; font-weight: bold; }
+        .rest { color: #ccc; }
+    </style>
+</head>
+<body>
+    <h1>BMS Timing Engine Test</h1>
+    
+    <div class="test-section">
+        <h2>Chart Loading Test</h2>
+        <button id="test-chart-load">Load Chart from JSON</button>
+        <div id="chart-load-output"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Timing Calculation Test</h2>
+        <button id="test-timing">Test Timing Calculations</button>
+        <div id="timing-output"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Pattern Visualization Test</h2>
+        <button id="test-patterns">Visualize Patterns</button>
+        <div id="pattern-output"></div>
+    </div>
+    
+    <script src="scripts/bms-timing-engine.js"></script>
+    <script src="scripts/chart-loader.js"></script>
+    
+    <script>
+        // Test chart loading
+        document.getElementById('test-chart-load').addEventListener('click', async () => {
+            const output = document.getElementById('chart-load-output');
+            output.innerHTML = 'Testing chart loading...<br>';
+            
+            try {
+                const loader = new ChartLoader();
+                const chartData = await loader.loadChartFromFile('./assets/charts/demo-song.json');
+                
+                output.innerHTML += `✅ Chart loaded successfully!<br>`;
+                output.innerHTML += `📝 Title: ${chartData.metadata.title}<br>`;
+                output.innerHTML += `🎵 Artist: ${chartData.metadata.artist}<br>`;
+                output.innerHTML += `⚡ BPM: ${chartData.metadata.bpm}<br>`;
+                output.innerHTML += `📊 Subdivision: ${chartData.metadata.subdivision}<br>`;
+                output.innerHTML += `🎯 Difficulties: ${Object.keys(chartData.charts).join(', ')}<br>`;
+                
+                // Test BMS engine creation
+                const bmsEngine = new BMSTimingEngine(chartData);
+                output.innerHTML += `✅ BMS Engine created successfully!<br>`;
+                
+                // Show timing info
+                const timingInfo = bmsEngine.getTimingInfo();
+                output.innerHTML += `⏱️ Seconds per beat: ${timingInfo.secondsPerBeat.toFixed(3)}s<br>`;
+                output.innerHTML += `📏 Measure duration: ${timingInfo.measureDuration.toFixed(1)}ms<br>`;
+                output.innerHTML += `🎼 Subdivision duration: ${timingInfo.subdivisionDuration.toFixed(1)}ms<br>`;
+                
+            } catch (error) {
+                output.innerHTML += `❌ Error: ${error.message}<br>`;
+                console.error('Chart loading error:', error);
+            }
+        });
+        
+        // Test timing calculations
+        document.getElementById('test-timing').addEventListener('click', async () => {
+            const output = document.getElementById('timing-output');
+            output.innerHTML = 'Testing timing calculations...<br>';
+            
+            try {
+                const chartData = ChartLoader.createBlackestLuxuryCarChart();
+                const bmsEngine = new BMSTimingEngine(chartData);
+                
+                // Test specific timing calculations
+                const tests = [
+                    { measure: 0, subdivision: 0, expected: 0 },
+                    { measure: 0, subdivision: 4, expected: 1 * (60 / 145) * 1000 }, // 1 beat at 145 BPM
+                    { measure: 1, subdivision: 0, expected: 4 * (60 / 145) * 1000 }, // 1 full measure
+                ];
+                
+                for (const test of tests) {
+                    const calculated = bmsEngine.calculateNoteTime(test.measure, test.subdivision);
+                    const diff = Math.abs(calculated - test.expected);
+                    const tolerance = 1; // 1ms tolerance
+                    
+                    if (diff <= tolerance) {
+                        output.innerHTML += `✅ Measure ${test.measure}, subdivision ${test.subdivision}: ${calculated.toFixed(1)}ms (expected ~${test.expected.toFixed(1)}ms)<br>`;
+                    } else {
+                        output.innerHTML += `❌ Measure ${test.measure}, subdivision ${test.subdivision}: ${calculated.toFixed(1)}ms (expected ${test.expected.toFixed(1)}ms, diff: ${diff.toFixed(1)}ms)<br>`;
+                    }
+                }
+                
+                // Test chart conversion
+                const gameFormat = bmsEngine.convertToGameFormat('easy');
+                output.innerHTML += `🎮 Converted to game format: ${gameFormat.length} notes<br>`;
+                
+                if (gameFormat.length > 0) {
+                    const firstNote = gameFormat[0];
+                    const lastNote = gameFormat[gameFormat.length - 1];
+                    output.innerHTML += `⏰ First note: ${firstNote.hitTime.toFixed(1)}ms (${firstNote.lane} lane)<br>`;
+                    output.innerHTML += `⏰ Last note: ${lastNote.hitTime.toFixed(1)}ms (${lastNote.lane} lane)<br>`;
+                    output.innerHTML += `🎵 Total duration: ${(lastNote.hitTime / 1000).toFixed(1)}s<br>`;
+                }
+                
+            } catch (error) {
+                output.innerHTML += `❌ Error: ${error.message}<br>`;
+                console.error('Timing calculation error:', error);
+            }
+        });
+        
+        // Test pattern visualization
+        document.getElementById('test-patterns').addEventListener('click', async () => {
+            const output = document.getElementById('pattern-output');
+            output.innerHTML = 'Visualizing patterns...<br>';
+            
+            try {
+                const chartData = ChartLoader.createBlackestLuxuryCarChart();
+                const bmsEngine = new BMSTimingEngine(chartData);
+                
+                const chart = chartData.charts.easy;
+                
+                output.innerHTML += `<h3>Easy Difficulty Patterns:</h3>`;
+                
+                chart.measures.forEach((measure, index) => {
+                    output.innerHTML += `<div class="pattern-viz">`;
+                    output.innerHTML += `<strong>Measure ${index + 1}:</strong><br>`;
+                    output.innerHTML += `Top:    |${measure.topLane.split('').map(c => c === '1' ? '<span class="note">●</span>' : '<span class="rest">-</span>').join('')}|<br>`;
+                    output.innerHTML += `Bottom: |${measure.bottomLane.split('').map(c => c === '1' ? '<span class="note">●</span>' : '<span class="rest">-</span>').join('')}|<br>`;
+                    output.innerHTML += `</div><br>`;
+                });
+                
+                // Validation test
+                const validation = bmsEngine.validateChart('easy');
+                if (validation.isValid) {
+                    output.innerHTML += `✅ Chart validation: PASSED<br>`;
+                } else {
+                    output.innerHTML += `❌ Chart validation: FAILED<br>`;
+                    validation.issues.forEach(issue => {
+                        output.innerHTML += `&nbsp;&nbsp;- ${issue}<br>`;
+                    });
+                }
+                
+            } catch (error) {
+                output.innerHTML += `❌ Error: ${error.message}<br>`;
+                console.error('Pattern visualization error:', error);
+            }
+        });
+    </script>
+</body>
+</html>

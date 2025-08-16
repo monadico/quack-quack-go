@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Audio Test</title>
+</head>
+<body>
+    <h1>Audio Test</h1>
+    <button id="test-audio">Test Audio Loading</button>
+    <div id="output"></div>
+    
+    <script>
+        document.getElementById('test-audio').addEventListener('click', async () => {
+            const output = document.getElementById('output');
+            output.innerHTML = 'Testing audio loading...<br>';
+            
+            try {
+                const audio = new Audio('./%5BMuse%20Dash%E2%A7%B8Cytus%20II%E2%A7%B8BOFU2017%5D%20Blackest%20Luxury%20Car%20-%20Chicala%20Lpis%20%E3%80%90%E9%9F%B3%E6%BA%90%E3%80%91%20%E3%80%90%E9%AB%98%E9%9F%B3%E8%B3%AA%E3%80%91.mp3');
+                
+                audio.addEventListener('loadedmetadata', () => {
+                    output.innerHTML += `Audio loaded successfully!<br>`;
+                    output.innerHTML += `Duration: ${audio.duration} seconds<br>`;
+                    output.innerHTML += `Can play: ${audio.canPlayType('audio/mpeg')}<br>`;
+                });
+                
+                audio.addEventListener('error', (e) => {
+                    output.innerHTML += `Audio error: ${e.message || 'Unknown error'}<br>`;
+                    console.error('Audio error:', e);
+                });
+                
+                audio.load();
+                
+            } catch (error) {
+                output.innerHTML += `Error: ${error.message}<br>`;
+                console.error('Error:', error);
+            }
+        });
+    </script>
+</body>
+</html>

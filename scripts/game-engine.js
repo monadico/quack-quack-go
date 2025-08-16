@@ -6,6 +6,7 @@ class GameEngine {
         this.currentSong = null;
         this.gameLoop = null;
         this.notes = [];
+        this.activeHoldNotes = new Map(); // Track currently held notes
         this.songProgress = 0;
         this.songDuration = 60000; // 60 seconds demo
         this.bpm = 128;
@@ -22,14 +23,14 @@ class GameEngine {
     createDemoChart() {
         const chart = [];
         const patterns = [
-            { top: true, bottom: false },
-            { top: false, bottom: true },
-            { top: true, bottom: true },
-            { top: false, bottom: false },
-            { top: true, bottom: false },
-            { top: false, bottom: true },
-            { top: true, bottom: false },
-            { top: false, bottom: true }
+            { top: true, bottom: false, type: 'normal' },
+            { top: false, bottom: true, type: 'normal' },
+            { top: true, bottom: true, type: 'normal' },
+            { top: false, bottom: false, type: 'normal' },
+            { top: true, bottom: false, type: 'hold', duration: 1600 },
+            { top: false, bottom: true, type: 'normal' },
+            { top: true, bottom: false, type: 'normal' },
+            { top: false, bottom: true, type: 'hold', duration: 2400 }
         ];
 
         // Create notes that spawn early to account for travel time
@@ -43,7 +44,9 @@ class GameEngine {
                     spawnTime: spawnTime,
                     hitTime: hitTime,
                     topLane: pattern.top,
-                    bottomLane: pattern.bottom
+                    bottomLane: pattern.bottom,
+                    type: pattern.type || 'normal',
+                    duration: pattern.duration || 0
                 });
             }
         }
@@ -101,6 +104,7 @@ class GameEngine {
         }
         
         this.clearAllNotes();
+        this.activeHoldNotes.clear();
         this.gameStateManager.endGame();
     }
 
@@ -115,6 +119,7 @@ class GameEngine {
 
         this.spawnNotes(gameTime);
         this.updateNotes();
+        this.updateHoldNotes(gameTime);
         this.checkMissedNotes();
 
         if (this.songProgress >= 100) {
@@ -131,12 +136,12 @@ class GameEngine {
             
             if (chartNote.spawnTime <= gameTime) {
                 if (chartNote.topLane) {
-                    this.createNote('top', chartNote.hitTime);
-                    console.log('Spawned top note at', gameTime);
+                    this.createNote('top', chartNote.hitTime, chartNote.type, chartNote.duration);
+                    console.log(`Spawned ${chartNote.type} top note at`, gameTime);
                 }
                 if (chartNote.bottomLane) {
-                    this.createNote('bottom', chartNote.hitTime);
-                    console.log('Spawned bottom note at', gameTime);
+                    this.createNote('bottom', chartNote.hitTime, chartNote.type, chartNote.duration);
+                    console.log(`Spawned ${chartNote.type} bottom note at`, gameTime);
                 }
                 this.chartIndex++;
             } else {
@@ -145,9 +150,9 @@ class GameEngine {
         }
     }
 
-    createNote(lane, hitTime) {
-        console.log(`Creating note for ${lane} lane at hit time ${hitTime}`);
-        const noteElement = this.gameStateManager.uiManager.createNote(lane, hitTime);
+    createNote(lane, hitTime, type = 'normal', duration = 0) {
+        console.log(`Creating ${type} note for ${lane} lane at hit time ${hitTime}`);
+        const noteElement = this.gameStateManager.uiManager.createNote(lane, hitTime, type, duration);
         
         if (noteElement) {
             console.log(`Note element created successfully:`, noteElement);
@@ -155,8 +160,13 @@ class GameEngine {
                 element: noteElement,
                 lane: lane,
                 hitTime: hitTime,
+                type: type,
+                duration: duration,
                 spawnTime: performance.now() - this.startTime,
                 hit: false,
+                isHolding: false,
+                holdStartTime: null,
+                holdScore: 0,
                 screenPosition: window.innerWidth // Start at right edge of screen
             };
             
@@ -210,42 +220,138 @@ class GameEngine {
         // This method can be simplified or removed
     }
 
+    updateHoldNotes(gameTime) {
+        // Update scoring for all currently held notes
+        for (const [lane, holdNote] of this.activeHoldNotes) {
+            if (holdNote.isHolding && holdNote.holdStartTime) {
+                const holdDuration = gameTime - holdNote.holdStartTime;
+                const maxHoldTime = holdNote.duration;
+                
+                // Calculate progressive points (10 points per 100ms of holding)
+                const progressivePoints = Math.floor(holdDuration / 100) * 10;
+                const newScore = progressivePoints - holdNote.holdScore;
+                
+                if (newScore > 0) {
+                    holdNote.holdScore = progressivePoints;
+                    this.gameStateManager.updateScore(newScore, 'hold');
+                }
+                
+                // Check if hold duration is complete
+                if (holdDuration >= maxHoldTime) {
+                    this.completeHoldNote(holdNote, 'perfect');
+                }
+                
+                // Update visual progress
+                this.gameStateManager.uiManager.updateHoldProgress(holdNote, holdDuration / maxHoldTime);
+            }
+        }
+    }
+
     checkMissedNotes() {
         // This is now handled in updateNotes() method
     }
 
-    handleInput(lane) {
+    handleInput(lane, action = 'press') {
         if (!this.isPlaying || this.isPaused) return;
 
-        console.log('Input received for lane:', lane);
+        console.log(`Input received for lane: ${lane}, action: ${action}`);
+        
+        if (action === 'press') {
+            this.handleKeyPress(lane);
+        } else if (action === 'release') {
+            this.handleKeyRelease(lane);
+        }
+    }
+
+    handleKeyPress(lane) {
         const hitNote = this.findHittableNote(lane);
         
         if (hitNote) {
             const judgment = this.calculateJudgment(hitNote);
-            const score = this.calculateScore(judgment);
             
-            console.log('Hit note with judgment:', judgment, 'score:', score, 'position:', hitNote.position);
-            
-            hitNote.hit = true;
-            this.gameStateManager.updateScore(score, judgment);
-            this.gameStateManager.uiManager.removeNote(hitNote.element);
-            
-            if (judgment === 'perfect') {
-                this.gameStateManager.uiManager.addScreenShake(0.5);
+            if (hitNote.type === 'hold') {
+                // Start holding
+                hitNote.isHolding = true;
+                hitNote.holdStartTime = performance.now() - this.startTime;
+                hitNote.hit = true;
+                this.activeHoldNotes.set(lane, hitNote);
+                
+                const initialScore = this.calculateScore(judgment);
+                this.gameStateManager.updateScore(initialScore, judgment);
+                this.gameStateManager.uiManager.startHoldEffect(hitNote);
+                
+                console.log(`Started holding ${lane} note with judgment:`, judgment);
+            } else {
+                // Regular note hit
+                const score = this.calculateScore(judgment);
+                hitNote.hit = true;
+                this.gameStateManager.updateScore(score, judgment);
+                this.gameStateManager.uiManager.removeNote(hitNote.element);
+                
+                if (judgment === 'perfect') {
+                    this.gameStateManager.uiManager.addScreenShake(0.5);
+                }
+                console.log('Hit regular note with judgment:', judgment, 'score:', score);
             }
         } else {
             // Only register miss if there are notes in the lane that could have been hit
             const nearbyNotes = this.notes.filter(note => 
                 note.lane === lane && 
                 !note.hit && 
-                Math.abs(note.position - 100) < 30 // Within reasonable distance of hit zone
+                Math.abs(note.screenPosition - window.innerWidth * 0.15) < 100
             );
-            
-            console.log('No hit, nearby notes:', nearbyNotes.length);
             
             if (nearbyNotes.length > 0) {
                 this.gameStateManager.updateScore(0, 'miss');
             }
+        }
+    }
+
+    handleKeyRelease(lane) {
+        const holdNote = this.activeHoldNotes.get(lane);
+        
+        if (holdNote && holdNote.isHolding) {
+            const currentTime = performance.now() - this.startTime;
+            const holdDuration = currentTime - holdNote.holdStartTime;
+            const maxHoldTime = holdNote.duration;
+            
+            if (holdDuration >= maxHoldTime) {
+                // Successfully completed the hold
+                this.completeHoldNote(holdNote, 'perfect');
+            } else {
+                // Released too early
+                const completionPercentage = holdDuration / maxHoldTime;
+                let judgment = 'miss';
+                
+                if (completionPercentage >= 0.9) judgment = 'great';
+                else if (completionPercentage >= 0.7) judgment = 'good';
+                
+                this.completeHoldNote(holdNote, judgment);
+            }
+        }
+    }
+
+    completeHoldNote(holdNote, judgment) {
+        console.log(`Completed hold note with judgment: ${judgment}`);
+        
+        // Bonus points for successful completion
+        if (judgment === 'perfect') {
+            const bonusScore = 500;
+            this.gameStateManager.updateScore(bonusScore, 'perfect');
+        } else if (judgment === 'great') {
+            const bonusScore = 300;
+            this.gameStateManager.updateScore(bonusScore, 'great');
+        } else if (judgment === 'good') {
+            const bonusScore = 100;
+            this.gameStateManager.updateScore(bonusScore, 'good');
+        }
+        
+        holdNote.isHolding = false;
+        this.activeHoldNotes.delete(holdNote.lane);
+        this.gameStateManager.uiManager.completeHoldEffect(holdNote, judgment);
+        
+        if (judgment === 'perfect') {
+            this.gameStateManager.uiManager.addScreenShake(1.0);
         }
     }
 
@@ -401,13 +507,13 @@ class GameEngine {
     }
 
     startNoteFlow() {
-        // Note patterns: 0 = no note, 1 = top lane, 2 = bottom lane, 3 = both lanes
+        // Note patterns: 0 = no note, 1 = top lane, 2 = bottom lane, 3 = both lanes, 4 = top hold, 5 = bottom hold
         const patterns = [
             1, 0, 2, 0, 1, 2, 0, 1,  // Basic alternating pattern
             0, 2, 1, 0, 2, 0, 1, 0,  // Syncopated pattern
-            1, 1, 2, 0, 1, 0, 2, 2,  // Double hits
+            1, 1, 2, 0, 4, 0, 2, 2,  // Double hits + top hold
             0, 1, 0, 2, 0, 1, 0, 2,  // Spaced pattern
-            3, 0, 0, 1, 0, 2, 0, 0,  // Both lanes + singles
+            3, 0, 0, 1, 0, 5, 0, 0,  // Both lanes + bottom hold
             1, 2, 1, 2, 0, 0, 3, 0,  // Quick alternation + both
             0, 0, 1, 0, 0, 2, 0, 1,  // Sparse pattern
             2, 1, 0, 1, 2, 0, 1, 2   // Dense pattern
@@ -428,12 +534,20 @@ class GameEngine {
             
             // Spawn notes based on pattern
             if (pattern === 1 || pattern === 3) {
-                this.createNote('top', noteId++);
+                this.createNote('top', noteId++, 'normal');
                 console.log('Spawned top note');
             }
             if (pattern === 2 || pattern === 3) {
-                this.createNote('bottom', noteId++);
+                this.createNote('bottom', noteId++, 'normal');
                 console.log('Spawned bottom note');
+            }
+            if (pattern === 4) {
+                this.createNote('top', noteId++, 'hold', 1800);
+                console.log('Spawned top hold note');
+            }
+            if (pattern === 5) {
+                this.createNote('bottom', noteId++, 'hold', 1800);
+                console.log('Spawned bottom hold note');
             }
             
             patternIndex++;
