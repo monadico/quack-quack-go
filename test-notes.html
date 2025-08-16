@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Note Visibility Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a2e;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .lane {
+            height: 80px;
+            width: 100%;
+            position: relative;
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            border-radius: 10px;
+            margin: 8px 0;
+            overflow: visible;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .note-area {
+            position: absolute;
+            top: 0;
+            left: 15%;
+            right: 0;
+            height: 100%;
+            overflow: visible;
+            z-index: 50;
+            border: 1px dashed rgba(255, 255, 255, 0.3);
+        }
+        
+        .hit-zone {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 15%;
+            height: 100%;
+            background: rgba(255, 215, 0, 0.4);
+            border-right: 3px solid rgba(255, 215, 0, 0.6);
+        }
+        
+        .note {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            top: 50%;
+            transform: translateY(-50%);
+            left: 100%;
+            z-index: 1000;
+            border: 3px solid white;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            background: red;
+        }
+        
+        .note.moving {
+            transition: left 3s linear;
+        }
+        
+        .controls {
+            margin: 20px 0;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            background: #ff6b6b;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background: #ff5252;
+        }
+        
+        .debug-info {
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🎵 Note Visibility Test</h1>
+        
+        <div class="controls">
+            <button onclick="createTestNote()">Create Test Note</button>
+            <button onclick="createMovingNote()">Create Moving Note</button>
+            <button onclick="clearAllNotes()">Clear All Notes</button>
+            <button onclick="testNotePositioning()">Test Note Positioning</button>
+        </div>
+        
+        <div class="debug-info">
+            <h3>Debug Info:</h3>
+            <div id="debug-output">Click buttons to test note creation...</div>
+        </div>
+        
+        <h3>Test Lanes:</h3>
+        
+        <!-- Lane 1 -->
+        <div class="lane" id="lane-1">
+            <div class="hit-zone"></div>
+            <div class="note-area" id="note-area-1"></div>
+        </div>
+        
+        <!-- Lane 2 -->
+        <div class="lane" id="lane-2">
+            <div class="hit-zone"></div>
+            <div class="note-area" id="note-area-2"></div>
+        </div>
+        
+        <!-- Lane 3 -->
+        <div class="lane" id="lane-3">
+            <div class="hit-zone"></div>
+            <div class="note-area" id="note-area-3"></div>
+        </div>
+        
+        <!-- Lane 4 -->
+        <div class="lane" id="lane-4">
+            <div class="hit-zone"></div>
+            <div class="note-area" id="note-area-4"></div>
+        </div>
+    </div>
+
+    <script>
+        let noteCounter = 0;
+        
+        function log(message) {
+            const debugOutput = document.getElementById('debug-output');
+            const timestamp = new Date().toLocaleTimeString();
+            debugOutput.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+            console.log(message);
+        }
+        
+        function createTestNote() {
+            noteCounter++;
+            const laneId = `lane-${(noteCounter % 4) + 1}`;
+            const noteArea = document.getElementById(`note-area-${(noteCounter % 4) + 1}`);
+            
+            if (!noteArea) {
+                log(`❌ Note area not found for ${laneId}`);
+                return;
+            }
+            
+            const note = document.createElement('div');
+            note.className = 'note';
+            note.textContent = noteCounter;
+            note.style.background = `hsl(${noteCounter * 60}, 70%, 60%)`;
+            
+            // Position note at right edge
+            note.style.left = '100%';
+            
+            noteArea.appendChild(note);
+            
+            log(`✅ Created note ${noteCounter} in ${laneId}`);
+            log(`Note element:`, note);
+            log(`Note position:`, note.getBoundingClientRect());
+            log(`Note area:`, noteArea);
+            
+            // Check if note is visible
+            setTimeout(() => {
+                const rect = note.getBoundingClientRect();
+                log(`Note ${noteCounter} visibility check:`);
+                log(`- In DOM: ${document.contains(note)}`);
+                log(`- Position: ${rect.left}, ${rect.top}`);
+                log(`- Size: ${rect.width} x ${rect.height}`);
+                log(`- Visible: ${rect.width > 0 && rect.height > 0}`);
+            }, 100);
+        }
+        
+        function createMovingNote() {
+            noteCounter++;
+            const laneId = `lane-${(noteCounter % 4) + 1}`;
+            const noteArea = document.getElementById(`note-area-${(noteCounter % 4) + 1}`);
+            
+            if (!noteArea) {
+                log(`❌ Note area not found for ${laneId}`);
+                return;
+            }
+            
+            const note = document.createElement('div');
+            note.className = 'note moving';
+            note.textContent = noteCounter;
+            note.style.background = `hsl(${noteCounter * 60}, 70%, 60%)`;
+            
+            // Start at right edge
+            note.style.left = '100%';
+            noteArea.appendChild(note);
+            
+            log(`✅ Created moving note ${noteCounter} in ${laneId}`);
+            
+            // Animate to left
+            setTimeout(() => {
+                note.style.left = '-15%';
+                log(`🎯 Note ${noteCounter} started moving left`);
+            }, 100);
+            
+            // Remove after animation
+            setTimeout(() => {
+                if (note.parentElement) {
+                    note.remove();
+                    log(`🗑️ Removed note ${noteCounter}`);
+                }
+            }, 3500);
+        }
+        
+        function clearAllNotes() {
+            const notes = document.querySelectorAll('.note');
+            notes.forEach(note => note.remove());
+            log(`🧹 Cleared ${notes.length} notes`);
+        }
+        
+        function testNotePositioning() {
+            log('🔍 Testing note positioning...');
+            
+            const lanes = ['lane-1', 'lane-2', 'lane-3', 'lane-4'];
+            lanes.forEach(laneId => {
+                const lane = document.getElementById(laneId);
+                const noteArea = lane.querySelector('.note-area');
+                const hitZone = lane.querySelector('.hit-zone');
+                
+                const laneRect = lane.getBoundingClientRect();
+                const noteAreaRect = noteArea.getBoundingClientRect();
+                const hitZoneRect = hitZone.getBoundingClientRect();
+                
+                log(`${laneId}:`);
+                log(`  - Lane: ${laneRect.left}, ${laneRect.top}, ${laneRect.width} x ${laneRect.height}`);
+                log(`  - Note Area: ${noteAreaRect.left}, ${noteAreaRect.top}, ${noteAreaRect.width} x ${noteAreaRect.height}`);
+                log(`  - Hit Zone: ${hitZoneRect.left}, ${hitZoneRect.top}, ${hitZoneRect.width} x ${hitZoneRect.height}`);
+            });
+        }
+        
+        // Initial debug info
+        log('🎮 Note visibility test page loaded');
+        log(`Window size: ${window.innerWidth} x ${window.innerHeight}`);
+    </script>
+</body>
+</html>

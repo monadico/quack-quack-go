@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Note Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a2e;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        
+        .test-lane {
+            width: 100%;
+            height: 100px;
+            border: 2px solid white;
+            margin: 20px 0;
+            position: relative;
+            overflow: visible;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .note-area {
+            position: absolute;
+            top: 0;
+            left: 15%;
+            right: 0;
+            height: 100%;
+            border: 1px dashed rgba(255, 255, 255, 0.5);
+        }
+        
+        .hit-zone {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 15%;
+            height: 100%;
+            background: rgba(255, 215, 0, 0.3);
+        }
+        
+        .test-note {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            top: 50%;
+            transform: translateY(-50%);
+            right: -30px;
+            background: red !important;
+            border: 5px solid yellow !important;
+            box-shadow: 0 0 30px red !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            z-index: 9999;
+            animation: pulse 1s ease-in-out infinite alternate;
+        }
+        
+        @keyframes pulse {
+            from { transform: translateY(-50%) scale(1); }
+            to { transform: translateY(-50%) scale(1.2); }
+        }
+        
+        .moving {
+            transition: right 3s linear;
+        }
+        
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            background: #ff6b6b;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+        }
+        
+        .debug {
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 5px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎵 Simple Note Test</h1>
+    
+    <div>
+        <button onclick="createNote()">Create Note</button>
+        <button onclick="createMovingNote()">Create Moving Note</button>
+        <button onclick="clearNotes()">Clear All</button>
+    </div>
+    
+    <div class="debug" id="debug">
+        Click buttons to test note creation...
+    </div>
+    
+    <div class="test-lane">
+        <div class="hit-zone"></div>
+        <div class="note-area" id="note-area"></div>
+    </div>
+    
+    <script>
+        let noteCount = 0;
+        
+        function log(message) {
+            const debug = document.getElementById('debug');
+            debug.innerHTML += `<div>[${new Date().toLocaleTimeString()}] ${message}</div>`;
+            console.log(message);
+        }
+        
+        function createNote() {
+            noteCount++;
+            const noteArea = document.getElementById('note-area');
+            
+            const note = document.createElement('div');
+            note.className = 'test-note';
+            note.textContent = noteCount;
+            
+            noteArea.appendChild(note);
+            
+            log(`✅ Created note ${noteCount}`);
+            log(`Note element:`, note);
+            log(`Note position:`, note.getBoundingClientRect());
+            
+            // Check visibility after a short delay
+            setTimeout(() => {
+                const rect = note.getBoundingClientRect();
+                log(`Note ${noteCount} visibility:`);
+                log(`- In DOM: ${document.contains(note)}`);
+                log(`- Position: ${rect.left}, ${rect.top}`);
+                log(`- Size: ${rect.width} x ${rect.height}`);
+                log(`- Visible: ${rect.width > 0 && rect.height > 0}`);
+            }, 100);
+        }
+        
+        function createMovingNote() {
+            noteCount++;
+            const noteArea = document.getElementById('note-area');
+            
+            const note = document.createElement('div');
+            note.className = 'test-note moving';
+            note.textContent = noteCount;
+            
+            noteArea.appendChild(note);
+            
+            log(`✅ Created moving note ${noteCount}`);
+            
+            // Start movement
+            setTimeout(() => {
+                note.style.right = '85px';
+                log(`🎯 Note ${noteCount} started moving`);
+            }, 100);
+            
+            // Remove after animation
+            setTimeout(() => {
+                if (note.parentElement) {
+                    note.remove();
+                    log(`🗑️ Removed note ${noteCount}`);
+                }
+            }, 3500);
+        }
+        
+        function clearNotes() {
+            const notes = document.querySelectorAll('.test-note');
+            notes.forEach(note => note.remove());
+            log(`🧹 Cleared ${notes.length} notes`);
+        }
+        
+        log('🎮 Simple note test loaded');
+    </script>
+</body>
+</html>
