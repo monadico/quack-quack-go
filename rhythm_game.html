@@ -57,6 +57,89 @@
             animation: slideIn 0.5s ease-out;
         }
         
+        .song-select-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+            max-width: 800px;
+            width: 90%;
+        }
+        
+        .song-select-container.active {
+            display: flex;
+            animation: slideIn 0.5s ease-out;
+        }
+        
+        .song-select-title {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #00ffff;
+            margin-bottom: 20px;
+        }
+        
+        .song-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            width: 100%;
+        }
+        
+        .song-card {
+            background: rgba(0, 0, 0, 0.6);
+            border: 2px solid #00ffff;
+            border-radius: 10px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 255, 255, 0.2);
+        }
+        
+        .song-card:hover {
+            border-color: #33ffff;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 255, 255, 0.4);
+        }
+        
+        .song-card.selected {
+            border-color: #ff6600;
+            background: rgba(255, 102, 0, 0.1);
+        }
+        
+        .song-title {
+            font-size: 1.4em;
+            font-weight: bold;
+            color: #00ffff;
+            margin-bottom: 8px;
+        }
+        
+        .song-artist {
+            color: #ccc;
+            margin-bottom: 12px;
+            font-style: italic;
+        }
+        
+        .song-details {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9em;
+            color: #999;
+        }
+        
+        .song-difficulty {
+            background: #ff6600;
+            color: black;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        
+        .song-info {
+            display: flex;
+            gap: 15px;
+        }
+        
         .settings-title {
             font-size: 2.5em;
             font-weight: bold;
@@ -340,6 +423,16 @@
         </div>
     </div>
     
+    <div class="song-select-container" id="songSelectContainer">
+        <div class="song-select-title">SELECT SONG</div>
+        <div class="song-list" id="songList">
+            <!-- Songs will be populated dynamically -->
+        </div>
+        <div class="menu-buttons">
+            <button class="menu-btn" id="playSongBtn" disabled>Play Selected Song</button>
+        </div>
+    </div>
+    
     <div class="settings-container" id="settingsContainer">
         <div class="settings-title">SETTINGS</div>
         
@@ -403,11 +496,14 @@
         const menuContainer = document.getElementById('menuContainer');
         const gameContainer = document.getElementById('gameContainer');
         const settingsContainer = document.getElementById('settingsContainer');
+        const songSelectContainer = document.getElementById('songSelectContainer');
         const backBtn = document.getElementById('backBtn');
         const playBtn = document.getElementById('playBtn');
         const practiceBtn = document.getElementById('practiceBtn');
         const settingsBtn = document.getElementById('settingsBtn');
         const aboutBtn = document.getElementById('aboutBtn');
+        const songList = document.getElementById('songList');
+        const playSongBtn = document.getElementById('playSongBtn');
         
         // Settings elements
         const volumeSlider = document.getElementById('volumeSlider');
@@ -428,6 +524,7 @@
         let notes = [];
         let noteSpeed = 4;
         let gameStartTime = 0;
+        let gameLoopId = null; // Track animation frame for proper cleanup
         
         // Settings variables
         let gameSettings = {
@@ -436,6 +533,10 @@
         };
         let isListeningForKey = false;
         let listeningLane = -1;
+        
+        // Song library system
+        let currentSong = null;
+        let currentNoteChart = [];
         
         // Game configuration
         const LANES = 4; // A, S, D, F keys
@@ -452,144 +553,49 @@
             'k': 3, 'K': 3
         };
         
-        // Note patterns for the song (simplified timing)
-        const NOTE_CHART = [
-            // Format: [time_in_seconds, lane]
-            [3.46057, 0],
-            [4.22573, 2],
-            [4.85778, 0],
-            [5.57444, 2],
-            [6.23005, 0],
-            [6.88974, 2],
-            [7.54007, 0],
-            [8.22599, 2],
-            [8.86556, 0],
-            [9.56490, 2],
-            [10.18839, 0],
-            [10.34244, 1],
-            [10.53395, 2],
-            [10.67089, 3],
-            [11.24072, 0],
-            [11.25177, 3],
-            [11.57241, 2],
-            [11.91933, 3],
-            [12.06975, 1],
-            [12.41044, 2],
-            [12.58225, 3],
-            [12.92885, 0],
-            [13.26712, 2],
-            [13.41433, 1],
-            [13.79694, 3],
-            [13.94333, 0],
-            [14.28388, 2],
-            [14.63574, 1],
-            [14.77772, 3],
-            [15.12412, 0],
-            [15.29925, 2],
-            [15.64737, 1],
-            [15.98437, 3],
-            [16.12007, 0],
-            [16.46653, 2],
-            [16.62881, 1],
-            [17.01149, 3],
-            [17.43316, 3],
-            [18.33122, 0],
-            [18.82213, 0],
-            [19.66809, 2],
-            [20.20109, 2],
-            [20.99557, 0],
-            [21.18362, 1],
-            [21.35896, 2],
-            [21.50993, 3],
-            [22.04768, 0],
-            [22.05983, 3],
-            [22.42225, 2],
-            [22.72259, 1],
-            [22.85765, 3],
-            [23.22523, 0],
-            [24.05659, 2],
-            [24.21593, 1],
-            [24.53856, 3],
-            [24.69224, 0],
-            [25.42587, 2],
-            [25.55137, 1],
-            [25.92426, 3],
-            [26.07759, 0],
-            [26.76147, 2],
-            [26.90419, 1],
-            [27.24454, 3],
-            [27.40580, 0],
-            [27.76990, 0],
-            [27.91659, 1],
-            [28.11672, 2],
-            [28.28617, 3],
-            [28.76592, 2],
-            [28.97573, 3],
-            [29.48047, 0],
-            [29.64253, 1],
-            [30.15815, 2],
-            [30.80626, 0],
-            [30.95201, 1],
-            [31.44475, 3],
-            [31.78077, 2],
-            [31.97847, 3],
-            [32.14013, 0],
-            [32.32850, 2],
-            [33.51959, 0],
-            [33.85351, 1],
-            [34.01328, 2],
-            [34.34737, 3],
-            [34.65288, 0],
-            [34.83423, 1],
-            [35.00869, 2],
-            [35.20218, 3],
-            [35.32649, 0],
-            [35.50725, 1],
-            [35.72612, 2],
-            [35.79706, 3],
-            [35.90889, 2],
-            [36.30156, 1],
-            [36.66219, 0],
-            [36.85410, 1],
-            [37.04017, 0],
-            [37.24424, 1],
-            [37.37005, 0],
-            [37.67457, 3],
-            [38.02534, 2],
-            [38.12345, 3],
-            [38.18186, 2],
-            [38.35710, 3],
-            [38.38772, 2],
-            [38.73663, 0],
-            [38.89582, 1],
-            [39.09866, 0],
-            [39.24128, 1],
-            [39.44404, 2],
-            [39.60753, 3],
-            [39.73951, 0],
-            [39.90803, 1],
-            [40.11070, 0],
-            [40.37315, 1],
-            [40.71945, 0],
-            [40.90544, 1],
-            [40.91022, 0],
-            [40.94904, 1],
-            [41.06416, 0],
-            [41.43061, 2],
-            [41.53993, 1],
-            [41.72583, 3],
-            [41.92668, 0],
-            [42.06663, 2],
-            [42.47898, 1],
-            [42.76652, 3],
-            [42.92987, 3],
-            [43.15258, 3],
-            [43.60989, 3],
-            [44.12877, 3],
-            [44.27432, 3],
-            [45.01315, 2],
-            [45.15595, 1]
-        ];
+        // Song library - easily expandable
+        const SONG_LIBRARY = {
+            'blackest-luxury-car': {
+                id: 'blackest-luxury-car',
+                title: 'Blackest Luxury Car',
+                artist: 'Chicala Lpis',
+                audioFile: '[Muse Dash⧸Cytus II⧸BOFU2017] Blackest Luxury Car - Chicala Lpis 【音源】 【高音質】.mp3',
+                difficulty: 'Hard',
+                bpm: 180,
+                duration: 45, // seconds
+                chart: [
+                    // Format: [time_in_seconds, lane]
+                    [3.46057, 0], [4.22573, 2], [4.85778, 0], [5.57444, 2], [6.23005, 0],
+                    [6.88974, 2], [7.54007, 0], [8.22599, 2], [8.86556, 0], [9.56490, 2],
+                    [10.18839, 0], [10.34244, 1], [10.53395, 2], [10.67089, 3], [11.24072, 0],
+                    [11.25177, 3], [11.57241, 2], [11.91933, 3], [12.06975, 1], [12.41044, 2],
+                    [12.58225, 3], [12.92885, 0], [13.26712, 2], [13.41433, 1], [13.79694, 3],
+                    [13.94333, 0], [14.28388, 2], [14.63574, 1], [14.77772, 3], [15.12412, 0],
+                    [15.29925, 2], [15.64737, 1], [15.98437, 3], [16.12007, 0], [16.46653, 2],
+                    [16.62881, 1], [17.01149, 3], [17.43316, 3], [18.33122, 0], [18.82213, 0],
+                    [19.66809, 2], [20.20109, 2], [20.99557, 0], [21.18362, 1], [21.35896, 2],
+                    [21.50993, 3], [22.04768, 0], [22.05983, 3], [22.42225, 2], [22.72259, 1],
+                    [22.85765, 3], [23.22523, 0], [24.05659, 2], [24.21593, 1], [24.53856, 3],
+                    [24.69224, 0], [25.42587, 2], [25.55137, 1], [25.92426, 3], [26.07759, 0],
+                    [26.76147, 2], [26.90419, 1], [27.24454, 3], [27.40580, 0], [27.76990, 0],
+                    [27.91659, 1], [28.11672, 2], [28.28617, 3], [28.76592, 2], [28.97573, 3],
+                    [29.48047, 0], [29.64253, 1], [30.15815, 2], [30.80626, 0], [30.95201, 1],
+                    [31.44475, 3], [31.78077, 2], [31.97847, 3], [32.14013, 0], [32.32850, 2],
+                    [33.51959, 0], [33.85351, 1], [34.01328, 2], [34.34737, 3], [34.65288, 0],
+                    [34.83423, 1], [35.00869, 2], [35.20218, 3], [35.32649, 0], [35.50725, 1],
+                    [35.72612, 2], [35.79706, 3], [35.90889, 2], [36.30156, 1], [36.66219, 0],
+                    [36.85410, 1], [37.04017, 0], [37.24424, 1], [37.37005, 0], [37.67457, 3],
+                    [38.02534, 2], [38.12345, 3], [38.18186, 2], [38.35710, 3], [38.38772, 2],
+                    [38.73663, 0], [38.89582, 1], [39.09866, 0], [39.24128, 1], [39.44404, 2],
+                    [39.60753, 3], [39.73951, 0], [39.90803, 1], [40.11070, 0], [40.37315, 1],
+                    [40.71945, 0], [40.90544, 1], [40.91022, 0], [40.94904, 1], [41.06416, 0],
+                    [41.43061, 2], [41.53993, 1], [41.72583, 3], [41.92668, 0], [42.06663, 2],
+                    [42.47898, 1], [42.76652, 3], [42.92987, 3], [43.15258, 3], [43.60989, 3],
+                    [44.12877, 3], [44.27432, 3], [45.01315, 2], [45.15595, 1]
+                ]
+            }
+            // Easy to add more songs here!
+        };
         
         class Note {
             constructor(lane, spawnTime) {
@@ -629,10 +635,16 @@
         }
         
         function initAudio() {
-            audio = new Audio('[Muse Dash⧸Cytus II⧸BOFU2017] Blackest Luxury Car - Chicala Lpis 【音源】 【高音質】.mp3');
+            if (!currentSong) {
+                console.warn('No song selected');
+                return;
+            }
+            
+            audio = new Audio(currentSong.audioFile);
             audio.addEventListener('loadeddata', () => {
                 startGameButton.disabled = false;
                 startGameButton.textContent = 'Start';
+                updateAudioVolume(); // Apply current volume setting
             });
             audio.addEventListener('error', (e) => {
                 console.error('Audio loading error:', e);
@@ -660,7 +672,7 @@
         function spawnNotes() {
             const currentTime = (Date.now() - gameStartTime) / 1000;
             
-            NOTE_CHART.forEach(([noteTime, lane]) => {
+            currentNoteChart.forEach(([noteTime, lane]) => {
                 const timeToSpawn = noteTime - (canvas.height / noteSpeed) / 60; // Spawn early so note reaches bottom at right time
                 
                 if (currentTime >= timeToSpawn && !notes.some(n => n.spawnTime === noteTime && n.lane === lane)) {
@@ -747,7 +759,10 @@
         }
         
         function gameLoop() {
-            if (!gameRunning) return;
+            if (!gameRunning) {
+                gameLoopId = null;
+                return;
+            }
             
             spawnNotes();
             updateNotes();
@@ -759,11 +774,18 @@
                 return;
             }
             
-            requestAnimationFrame(gameLoop);
+            gameLoopId = requestAnimationFrame(gameLoop);
         }
         
         function endGame() {
             gameRunning = false;
+            
+            // Cancel animation frame if active
+            if (gameLoopId) {
+                cancelAnimationFrame(gameLoopId);
+                gameLoopId = null;
+            }
+            
             startGameButton.disabled = false;
             startGameButton.textContent = 'Play Again';
         }
@@ -773,15 +795,35 @@
             menuContainer.classList.remove('hidden');
             gameContainer.classList.remove('active');
             settingsContainer.classList.remove('active');
+            songSelectContainer.classList.remove('active');
             backBtn.classList.remove('active');
             
+            // Stop game loop and audio
+            stopGame();
+            
+            // Stop any key listening
+            if (isListeningForKey) {
+                stopKeyListening();
+            }
+        }
+        
+        function stopGame() {
+            // Stop game state
+            gameRunning = false;
+            
+            // Cancel animation frame
+            if (gameLoopId) {
+                cancelAnimationFrame(gameLoopId);
+                gameLoopId = null;
+            }
+            
+            // Stop and reset audio
             if (audio) {
                 audio.pause();
                 audio.currentTime = 0;
             }
             
             // Reset game state completely
-            gameRunning = false;
             score = 0;
             notes = [];
             gameStartTime = 0;
@@ -794,15 +836,24 @@
             // Clear canvas
             ctx.fillStyle = 'rgba(0, 0, 0, 1)';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            // Stop any key listening
-            if (isListeningForKey) {
-                stopKeyListening();
-            }
+        }
+        
+        function showSongSelect() {
+            menuContainer.classList.add('hidden');
+            songSelectContainer.classList.add('active');
+            backBtn.classList.add('active');
+            populateSongList();
+        }
+        
+        function hideSongSelect() {
+            songSelectContainer.classList.remove('active');
+            menuContainer.classList.remove('hidden');
+            backBtn.classList.remove('active');
         }
         
         function showGame() {
             menuContainer.classList.add('hidden');
+            songSelectContainer.classList.remove('active');
             gameContainer.classList.add('active');
             backBtn.classList.add('active');
             
@@ -833,18 +884,80 @@
             alert('Blackest Luxury Car - Rhythm Game\n\nCreated with Claude Code\n\nSong: Blackest Luxury Car by Chicala Lpis\nGenre: Muse Dash/Cytus II/BOFU2017\n\nControls:\nD, F, J, K - Hit notes\nESC - Return to menu\n\nHit the notes when they reach the red line!\nGood luck and have fun!');
         }
         
-        // Menu event listeners
-        playBtn.addEventListener('click', showGame);
-        practiceBtn.addEventListener('click', () => {
+        // Song selection functions
+        function populateSongList() {
+            songList.innerHTML = '';
+            
+            Object.values(SONG_LIBRARY).forEach(song => {
+                const songCard = document.createElement('div');
+                songCard.className = 'song-card';
+                songCard.dataset.songId = song.id;
+                
+                songCard.innerHTML = `
+                    <div class="song-title">${song.title}</div>
+                    <div class="song-artist">by ${song.artist}</div>
+                    <div class="song-details">
+                        <div class="song-info">
+                            <span>BPM: ${song.bpm}</span>
+                            <span>Duration: ${song.duration}s</span>
+                        </div>
+                        <div class="song-difficulty">${song.difficulty}</div>
+                    </div>
+                `;
+                
+                songCard.addEventListener('click', () => selectSong(song.id));
+                songList.appendChild(songCard);
+            });
+        }
+        
+        function selectSong(songId) {
+            // Remove previous selection
+            document.querySelectorAll('.song-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Select new song
+            document.querySelector(`[data-song-id="${songId}"]`).classList.add('selected');
+            currentSong = SONG_LIBRARY[songId];
+            currentNoteChart = currentSong.chart;
+            playSongBtn.disabled = false;
+            
+            console.log('Selected song:', currentSong.title);
+        }
+        
+        function loadSelectedSong() {
+            if (!currentSong) {
+                alert('Please select a song first!');
+                return;
+            }
+            
+            // Initialize audio for selected song
+            initAudio();
             showGame();
+        }
+        
+        // Menu event listeners
+        playBtn.addEventListener('click', showSongSelect);
+        practiceBtn.addEventListener('click', () => {
+            showSongSelect();
             // Future: Enable practice mode features
         });
         settingsBtn.addEventListener('click', showSettings);
         
-        // Update back button to handle settings
+        // Song selection button
+        playSongBtn.addEventListener('click', loadSelectedSong);
+        
+        // Update back button to handle all screens
         backBtn.addEventListener('click', () => {
             if (settingsContainer.classList.contains('active')) {
                 hideSettings();
+            } else if (songSelectContainer.classList.contains('active')) {
+                hideSongSelect();
+            } else if (gameContainer.classList.contains('active')) {
+                // From game, go back to song selection
+                stopGame();
+                gameContainer.classList.remove('active');
+                showSongSelect();
             } else {
                 showMenu();
             }
@@ -969,10 +1082,18 @@
         // Handle ESC key to return to menu
         document.addEventListener('keydown', (event) => {
             if (event.key === 'Escape') {
-                if (settingsContainer.classList.contains('active')) {
+                if (isListeningForKey) {
+                    // Stop key listening first
+                    stopKeyListening();
+                } else if (settingsContainer.classList.contains('active')) {
                     hideSettings();
-                } else if (menuContainer.classList.contains('hidden')) {
-                    showMenu();
+                } else if (songSelectContainer.classList.contains('active')) {
+                    hideSongSelect();
+                } else if (gameContainer.classList.contains('active')) {
+                    // From game, stop game and go back to song selection
+                    stopGame();
+                    gameContainer.classList.remove('active');
+                    showSongSelect();
                 }
             } else if (isListeningForKey) {
                 handleSettingsKeyPress(event);
@@ -981,7 +1102,7 @@
         
         // Initialize
         loadSettings();
-        initAudio();
+        // Don't init audio immediately - wait for song selection
     </script>
 </body>
 </html>
