@@ -15,13 +15,258 @@
             min-height: 100vh;
             font-family: Arial, sans-serif;
             color: white;
+            overflow: hidden;
         }
         
-        .game-container {
+        .menu-container {
             display: flex;
             flex-direction: column;
             align-items: center;
+            gap: 30px;
+            text-align: center;
+            animation: fadeIn 1s ease-in;
+        }
+        
+        .menu-container.hidden {
+            display: none;
+        }
+        
+        .game-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
             gap: 20px;
+        }
+        
+        .game-container.active {
+            display: flex;
+            animation: slideIn 0.5s ease-out;
+        }
+        
+        .settings-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+            max-width: 600px;
+            width: 90%;
+        }
+        
+        .settings-container.active {
+            display: flex;
+            animation: slideIn 0.5s ease-out;
+        }
+        
+        .settings-title {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #00ffff;
+            margin-bottom: 20px;
+        }
+        
+        .settings-section {
+            background: rgba(0, 0, 0, 0.6);
+            border: 2px solid #00ffff;
+            border-radius: 10px;
+            padding: 25px;
+            width: 100%;
+            box-shadow: 0 5px 15px rgba(0, 255, 255, 0.2);
+        }
+        
+        .settings-section h3 {
+            color: #00ffff;
+            margin: 0 0 20px 0;
+            font-size: 1.3em;
+        }
+        
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 10px 0;
+        }
+        
+        .setting-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .setting-label {
+            color: #ccc;
+            font-size: 1.1em;
+            min-width: 150px;
+        }
+        
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+        }
+        
+        .volume-slider {
+            flex: 1;
+            height: 6px;
+            background: #333;
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #00ffff;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+        
+        .volume-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #00ffff;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+        
+        .volume-value {
+            color: #00ffff;
+            font-weight: bold;
+            min-width: 40px;
+            text-align: right;
+        }
+        
+        .key-mapping {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .key-button {
+            background: #333;
+            border: 2px solid #666;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            min-width: 50px;
+            transition: all 0.3s ease;
+        }
+        
+        .key-button:hover {
+            border-color: #00ffff;
+            background: #444;
+        }
+        
+        .key-button.listening {
+            border-color: #ff0000;
+            background: #660000;
+            animation: pulse 1s infinite;
+        }
+        
+        .lane-label {
+            color: #00ffff;
+            font-weight: bold;
+            min-width: 80px;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .game-title {
+            font-size: 3.5em;
+            font-weight: bold;
+            background: linear-gradient(45deg, #00ffff, #ff00ff, #ffff00);
+            background-size: 200% 200%;
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: rainbowShift 3s ease-in-out infinite;
+            text-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+            margin-bottom: 10px;
+        }
+        
+        .game-subtitle {
+            font-size: 1.2em;
+            color: #ccc;
+            margin-bottom: 40px;
+            font-style: italic;
+        }
+        
+        .menu-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            min-width: 250px;
+        }
+        
+        .menu-btn {
+            background: linear-gradient(45deg, #00ffff, #0080ff);
+            border: none;
+            padding: 15px 30px;
+            color: black;
+            font-weight: bold;
+            font-size: 1.1em;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(0, 255, 255, 0.3);
+        }
+        
+        .menu-btn:hover {
+            background: linear-gradient(45deg, #33ffff, #3399ff);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 255, 255, 0.5);
+        }
+        
+        .menu-btn:active {
+            transform: translateY(0);
+        }
+        
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid #00ffff;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: none;
+        }
+        
+        .back-btn.active {
+            display: block;
+        }
+        
+        .back-btn:hover {
+            background: rgba(0, 255, 255, 0.2);
+            transform: scale(1.05);
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        
+        @keyframes rainbowShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
         }
         
         canvas {
@@ -70,15 +315,80 @@
     </style>
 </head>
 <body>
-    <div class="game-container">
+    <button class="back-btn" id="backBtn">← Back to Menu</button>
+    
+    <div class="menu-container" id="menuContainer">
+        <div class="game-title">BLACKEST LUXURY CAR</div>
+        <div class="game-subtitle">Rhythm Game</div>
+        <div class="menu-buttons">
+            <button class="menu-btn" id="playBtn">Play Game</button>
+            <button class="menu-btn" id="practiceBtn">Practice Mode</button>
+            <button class="menu-btn" id="settingsBtn">Settings</button>
+            <button class="menu-btn" id="aboutBtn">About</button>
+        </div>
+    </div>
+    
+    <div class="game-container" id="gameContainer">
         <canvas id="gameCanvas" width="800" height="600"></canvas>
         <div class="ui">
             <div class="score">Score: <span id="score">0</span></div>
-            <button id="playButton">Play</button>
-            <div class="controls">
+            <button id="startGameButton">Start</button>
+            <div class="controls" id="controlsDisplay">
                 Controls: D, F, J, K keys<br>
                 Hit the notes when they reach the bottom line!
             </div>
+        </div>
+    </div>
+    
+    <div class="settings-container" id="settingsContainer">
+        <div class="settings-title">SETTINGS</div>
+        
+        <div class="settings-section">
+            <h3>Audio</h3>
+            <div class="setting-item">
+                <div class="setting-label">Master Volume</div>
+                <div class="volume-control">
+                    <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="70">
+                    <div class="volume-value" id="volumeValue">70%</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="settings-section">
+            <h3>Controls</h3>
+            <div class="setting-item">
+                <div class="setting-label">Lane 1</div>
+                <div class="key-mapping">
+                    <div class="lane-label">Left:</div>
+                    <button class="key-button" id="key0" data-lane="0">D</button>
+                </div>
+            </div>
+            <div class="setting-item">
+                <div class="setting-label">Lane 2</div>
+                <div class="key-mapping">
+                    <div class="lane-label">Center-Left:</div>
+                    <button class="key-button" id="key1" data-lane="1">F</button>
+                </div>
+            </div>
+            <div class="setting-item">
+                <div class="setting-label">Lane 3</div>
+                <div class="key-mapping">
+                    <div class="lane-label">Center-Right:</div>
+                    <button class="key-button" id="key2" data-lane="2">J</button>
+                </div>
+            </div>
+            <div class="setting-item">
+                <div class="setting-label">Lane 4</div>
+                <div class="key-mapping">
+                    <div class="lane-label">Right:</div>
+                    <button class="key-button" id="key3" data-lane="3">K</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="menu-buttons">
+            <button class="menu-btn" id="saveSettingsBtn">Save Settings</button>
+            <button class="menu-btn" id="resetSettingsBtn">Reset to Default</button>
         </div>
     </div>
 
@@ -87,7 +397,30 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const scoreElement = document.getElementById('score');
-        const playButton = document.getElementById('playButton');
+        const startGameButton = document.getElementById('startGameButton');
+        
+        // Menu elements
+        const menuContainer = document.getElementById('menuContainer');
+        const gameContainer = document.getElementById('gameContainer');
+        const settingsContainer = document.getElementById('settingsContainer');
+        const backBtn = document.getElementById('backBtn');
+        const playBtn = document.getElementById('playBtn');
+        const practiceBtn = document.getElementById('practiceBtn');
+        const settingsBtn = document.getElementById('settingsBtn');
+        const aboutBtn = document.getElementById('aboutBtn');
+        
+        // Settings elements
+        const volumeSlider = document.getElementById('volumeSlider');
+        const volumeValue = document.getElementById('volumeValue');
+        const controlsDisplay = document.getElementById('controlsDisplay');
+        const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+        const resetSettingsBtn = document.getElementById('resetSettingsBtn');
+        const keyButtons = [
+            document.getElementById('key0'),
+            document.getElementById('key1'),
+            document.getElementById('key2'),
+            document.getElementById('key3')
+        ];
         
         let audio;
         let gameRunning = false;
@@ -96,6 +429,14 @@
         let noteSpeed = 4;
         let gameStartTime = 0;
         
+        // Settings variables
+        let gameSettings = {
+            volume: 70,
+            keyMappings: ['d', 'f', 'j', 'k']
+        };
+        let isListeningForKey = false;
+        let listeningLane = -1;
+        
         // Game configuration
         const LANES = 4; // A, S, D, F keys
         const LANE_WIDTH = canvas.width / LANES;
@@ -103,8 +444,8 @@
         const NOTE_HEIGHT = 20;
         const HIT_TOLERANCE = 50;
         
-        // Key mappings
-        const KEY_MAP = {
+        // Key mappings (will be updated from settings)
+        let KEY_MAP = {
             'd': 0, 'D': 0,
             'f': 1, 'F': 1,
             'j': 2, 'J': 2,
@@ -290,12 +631,12 @@
         function initAudio() {
             audio = new Audio('[Muse Dash⧸Cytus II⧸BOFU2017] Blackest Luxury Car - Chicala Lpis 【音源】 【高音質】.mp3');
             audio.addEventListener('loadeddata', () => {
-                playButton.disabled = false;
-                playButton.textContent = 'Play';
+                startGameButton.disabled = false;
+                startGameButton.textContent = 'Start';
             });
             audio.addEventListener('error', (e) => {
                 console.error('Audio loading error:', e);
-                playButton.textContent = 'Audio Error';
+                startGameButton.textContent = 'Audio Error';
             });
         }
         
@@ -307,8 +648,8 @@
             notes = [];
             gameStartTime = Date.now();
             
-            playButton.disabled = true;
-            playButton.textContent = 'Playing...';
+            startGameButton.disabled = true;
+            startGameButton.textContent = 'Playing...';
             
             audio.currentTime = 0;
             audio.play();
@@ -363,12 +704,12 @@
             ctx.lineTo(canvas.width, HIT_LINE_Y);
             ctx.stroke();
             
-            // Draw lane labels
+            // Draw lane labels (dynamic based on user settings)
             ctx.fillStyle = '#ffffff';
             ctx.font = '20px Arial';
             ctx.textAlign = 'center';
-            ['D', 'F', 'J', 'K'].forEach((key, i) => {
-                ctx.fillText(key, i * LANE_WIDTH + LANE_WIDTH / 2, HIT_LINE_Y + 30);
+            gameSettings.keyMappings.forEach((key, i) => {
+                ctx.fillText(key.toUpperCase(), i * LANE_WIDTH + LANE_WIDTH / 2, HIT_LINE_Y + 30);
             });
             
             // Draw notes
@@ -423,15 +764,223 @@
         
         function endGame() {
             gameRunning = false;
-            playButton.disabled = false;
-            playButton.textContent = 'Play Again';
+            startGameButton.disabled = false;
+            startGameButton.textContent = 'Play Again';
         }
         
-        // Event listeners
-        playButton.addEventListener('click', startGame);
+        // Menu navigation functions
+        function showMenu() {
+            menuContainer.classList.remove('hidden');
+            gameContainer.classList.remove('active');
+            settingsContainer.classList.remove('active');
+            backBtn.classList.remove('active');
+            
+            if (audio) {
+                audio.pause();
+                audio.currentTime = 0;
+            }
+            
+            // Reset game state completely
+            gameRunning = false;
+            score = 0;
+            notes = [];
+            gameStartTime = 0;
+            
+            // Reset UI
+            startGameButton.disabled = false;
+            startGameButton.textContent = 'Start';
+            scoreElement.textContent = '0';
+            
+            // Clear canvas
+            ctx.fillStyle = 'rgba(0, 0, 0, 1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Stop any key listening
+            if (isListeningForKey) {
+                stopKeyListening();
+            }
+        }
+        
+        function showGame() {
+            menuContainer.classList.add('hidden');
+            gameContainer.classList.add('active');
+            backBtn.classList.add('active');
+            
+            // Ensure game is ready to start
+            if (audio && audio.readyState >= 2) {
+                startGameButton.disabled = false;
+                startGameButton.textContent = 'Start';
+            }
+        }
+        
+        function showSettings() {
+            menuContainer.classList.add('hidden');
+            settingsContainer.classList.add('active');
+            backBtn.classList.add('active');
+            
+            // Load current settings
+            loadSettings();
+            updateSettingsDisplay();
+        }
+        
+        function hideSettings() {
+            settingsContainer.classList.remove('active');
+            menuContainer.classList.remove('hidden');
+            backBtn.classList.remove('active');
+        }
+        
+        function showAbout() {
+            alert('Blackest Luxury Car - Rhythm Game\n\nCreated with Claude Code\n\nSong: Blackest Luxury Car by Chicala Lpis\nGenre: Muse Dash/Cytus II/BOFU2017\n\nControls:\nD, F, J, K - Hit notes\nESC - Return to menu\n\nHit the notes when they reach the red line!\nGood luck and have fun!');
+        }
+        
+        // Menu event listeners
+        playBtn.addEventListener('click', showGame);
+        practiceBtn.addEventListener('click', () => {
+            showGame();
+            // Future: Enable practice mode features
+        });
+        settingsBtn.addEventListener('click', showSettings);
+        
+        // Update back button to handle settings
+        backBtn.addEventListener('click', () => {
+            if (settingsContainer.classList.contains('active')) {
+                hideSettings();
+            } else {
+                showMenu();
+            }
+        });
+        aboutBtn.addEventListener('click', showAbout);
+        
+        // Game event listeners
+        startGameButton.addEventListener('click', startGame);
         document.addEventListener('keydown', handleKeyPress);
         
+        // Settings functionality
+        function loadSettings() {
+            const saved = localStorage.getItem('rhythmGameSettings');
+            if (saved) {
+                gameSettings = { ...gameSettings, ...JSON.parse(saved) };
+            }
+            updateKeyMappings();
+            updateAudioVolume();
+        }
+        
+        function saveSettings() {
+            localStorage.setItem('rhythmGameSettings', JSON.stringify(gameSettings));
+            updateKeyMappings();
+            updateAudioVolume();
+            updateControlsDisplay();
+            alert('Settings saved successfully!');
+        }
+        
+        function resetSettings() {
+            gameSettings = {
+                volume: 70,
+                keyMappings: ['d', 'f', 'j', 'k']
+            };
+            updateSettingsDisplay();
+            updateKeyMappings();
+            updateAudioVolume();
+            updateControlsDisplay();
+            alert('Settings reset to default!');
+        }
+        
+        function updateSettingsDisplay() {
+            volumeSlider.value = gameSettings.volume;
+            volumeValue.textContent = gameSettings.volume + '%';
+            
+            keyButtons.forEach((btn, index) => {
+                btn.textContent = gameSettings.keyMappings[index].toUpperCase();
+            });
+        }
+        
+        function updateKeyMappings() {
+            KEY_MAP = {};
+            gameSettings.keyMappings.forEach((key, lane) => {
+                KEY_MAP[key.toLowerCase()] = lane;
+                KEY_MAP[key.toUpperCase()] = lane;
+            });
+        }
+        
+        function updateAudioVolume() {
+            if (audio) {
+                audio.volume = gameSettings.volume / 100;
+            }
+        }
+        
+        function updateControlsDisplay() {
+            const keys = gameSettings.keyMappings.map(k => k.toUpperCase()).join(', ');
+            controlsDisplay.innerHTML = `Controls: ${keys} keys<br>Hit the notes when they reach the bottom line!`;
+        }
+        
+        function startKeyListening(lane) {
+            if (isListeningForKey) return;
+            
+            isListeningForKey = true;
+            listeningLane = lane;
+            keyButtons[lane].classList.add('listening');
+            keyButtons[lane].textContent = '...';
+        }
+        
+        function stopKeyListening() {
+            if (!isListeningForKey) return;
+            
+            isListeningForKey = false;
+            keyButtons[listeningLane].classList.remove('listening');
+            keyButtons[listeningLane].textContent = gameSettings.keyMappings[listeningLane].toUpperCase();
+            listeningLane = -1;
+        }
+        
+        function handleSettingsKeyPress(event) {
+            if (!isListeningForKey) return;
+            
+            event.preventDefault();
+            const key = event.key.toLowerCase();
+            
+            // Prevent duplicate key assignments
+            if (gameSettings.keyMappings.includes(key)) {
+                alert('Key already assigned! Choose a different key.');
+                stopKeyListening();
+                return;
+            }
+            
+            // Update the key mapping
+            gameSettings.keyMappings[listeningLane] = key;
+            stopKeyListening();
+            updateSettingsDisplay();
+        }
+        
+        // Volume slider event
+        volumeSlider.addEventListener('input', (event) => {
+            gameSettings.volume = parseInt(event.target.value);
+            volumeValue.textContent = gameSettings.volume + '%';
+            updateAudioVolume();
+        });
+        
+        // Key button events
+        keyButtons.forEach((btn, index) => {
+            btn.addEventListener('click', () => startKeyListening(index));
+        });
+        
+        // Settings button events
+        saveSettingsBtn.addEventListener('click', saveSettings);
+        resetSettingsBtn.addEventListener('click', resetSettings);
+        
+        // Handle ESC key to return to menu
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                if (settingsContainer.classList.contains('active')) {
+                    hideSettings();
+                } else if (menuContainer.classList.contains('hidden')) {
+                    showMenu();
+                }
+            } else if (isListeningForKey) {
+                handleSettingsKeyPress(event);
+            }
+        });
+        
         // Initialize
+        loadSettings();
         initAudio();
     </script>
 </body>
