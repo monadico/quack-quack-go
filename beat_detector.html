@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beat Detection Tool - Chart Generator</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(45deg, #1a1a2e, #16213e);
+            font-family: Arial, sans-serif;
+            color: white;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #00ffff;
+            margin-bottom: 30px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            background: #00ffff;
+            border: none;
+            padding: 10px 20px;
+            color: black;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        
+        button:hover {
+            background: #33ffff;
+        }
+        
+        button:disabled {
+            background: #666;
+            color: #999;
+            cursor: not-allowed;
+        }
+        
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .slider-group label {
+            font-size: 12px;
+            color: #ccc;
+        }
+        
+        input[type="range"] {
+            width: 150px;
+        }
+        
+        .canvas-container {
+            border: 2px solid #00ffff;
+            background: rgba(0, 0, 0, 0.8);
+            margin-bottom: 20px;
+            position: relative;
+        }
+        
+        canvas {
+            display: block;
+            cursor: crosshair;
+        }
+        
+        .beat-list {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid #00ffff;
+            border-radius: 5px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .beat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px;
+            margin: 2px 0;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+        
+        .beat-item.assigned {
+            background: rgba(0, 255, 255, 0.2);
+        }
+        
+        .lane-buttons {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .lane-btn {
+            width: 30px;
+            height: 30px;
+            padding: 0;
+            font-size: 12px;
+            border-radius: 3px;
+        }
+        
+        .lane-btn.selected {
+            background: #ff6600;
+        }
+        
+        .export-area {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid #00ffff;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        
+        textarea {
+            width: 100%;
+            height: 200px;
+            background: #000;
+            color: #00ffff;
+            border: 1px solid #333;
+            border-radius: 3px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        
+        .info {
+            color: #ccc;
+            font-size: 14px;
+            margin: 10px 0;
+        }
+        
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-item {
+            background: rgba(0, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        .playhead {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #ff0000;
+            pointer-events: none;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Beat Detection Tool</h1>
+        
+        <div class="controls">
+            <button id="loadBtn">Load Audio</button>
+            <button id="analyzeBtn" disabled>Analyze Beats</button>
+            <button id="autoAssignBtn" disabled>Auto Assign</button>
+            <button id="manualModeBtn" disabled>Manual Notes</button>
+            <button id="playBtn" disabled>Play</button>
+            <button id="pauseBtn" disabled>Pause</button>
+            
+            <div class="slider-group">
+                <label>Sensitivity</label>
+                <input type="range" id="sensitivity" min="0.1" max="2" step="0.1" value="0.8">
+                <span id="sensitivityValue">0.8</span>
+            </div>
+            
+            <div class="slider-group">
+                <label>Min Interval (ms)</label>
+                <input type="range" id="minInterval" min="50" max="500" step="10" value="150">
+                <span id="minIntervalValue">150</span>
+            </div>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-item">
+                <div>Detected Beats</div>
+                <div id="beatCount">0</div>
+            </div>
+            <div class="stat-item">
+                <div>Assigned Notes</div>
+                <div id="assignedCount">0</div>
+            </div>
+            <div class="stat-item">
+                <div>Song Duration</div>
+                <div id="duration">0:00</div>
+            </div>
+        </div>
+        
+        <div class="canvas-container">
+            <canvas id="waveformCanvas" width="1160" height="200"></canvas>
+            <div class="playhead" id="playhead" style="left: 0px;"></div>
+        </div>
+        
+        <div class="info">
+            Click on detected beats (red dots) to assign them to lanes: D, F, J, K
+        </div>
+        
+        <div class="beat-list" id="beatList">
+            <div>Detected beats will appear here...</div>
+        </div>
+        
+        <div class="export-area">
+            <h3>Generated Chart</h3>
+            <button id="exportBtn">Export Chart</button>
+            <button id="copyBtn">Copy to Clipboard</button>
+            <textarea id="chartOutput" placeholder="Chart will appear here after beat detection and assignment..."></textarea>
+        </div>
+    </div>
+
+    <input type="file" id="fileInput" accept="audio/*" style="display: none;">
+
+    <script>
+        // Global variables
+        let audioContext;
+        let audioBuffer;
+        let audioSource;
+        let analyzer;
+        let audio;
+        let isPlaying = false;
+        let detectedBeats = [];
+        let assignedNotes = [];
+        let animationFrame;
+        let manualMode = false;
+        let manualNotes = [];
+        let recordingStartTime = 0;
+        
+        // DOM elements
+        const canvas = document.getElementById('waveformCanvas');
+        const ctx = canvas.getContext('2d');
+        const loadBtn = document.getElementById('loadBtn');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const autoAssignBtn = document.getElementById('autoAssignBtn');
+        const manualModeBtn = document.getElementById('manualModeBtn');
+        const playBtn = document.getElementById('playBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const fileInput = document.getElementById('fileInput');
+        const beatList = document.getElementById('beatList');
+        const chartOutput = document.getElementById('chartOutput');
+        const exportBtn = document.getElementById('exportBtn');
+        const copyBtn = document.getElementById('copyBtn');
+        const playhead = document.getElementById('playhead');
+        
+        const sensitivity = document.getElementById('sensitivity');
+        const sensitivityValue = document.getElementById('sensitivityValue');
+        const minInterval = document.getElementById('minInterval');
+        const minIntervalValue = document.getElementById('minIntervalValue');
+        
+        const beatCount = document.getElementById('beatCount');
+        const assignedCount = document.getElementById('assignedCount');
+        const duration = document.getElementById('duration');
+        
+        // Initialize
+        sensitivity.addEventListener('input', () => {
+            sensitivityValue.textContent = sensitivity.value;
+        });
+        
+        minInterval.addEventListener('input', () => {
+            minIntervalValue.textContent = minInterval.value;
+        });
+        
+        loadBtn.addEventListener('click', () => {
+            fileInput.click();
+        });
+        
+        fileInput.addEventListener('change', loadAudioFile);
+        analyzeBtn.addEventListener('click', analyzeBeats);
+        autoAssignBtn.addEventListener('click', autoAssignBeats);
+        manualModeBtn.addEventListener('click', toggleManualMode);
+        playBtn.addEventListener('click', playAudio);
+        pauseBtn.addEventListener('click', pauseAudio);
+        exportBtn.addEventListener('click', exportChart);
+        copyBtn.addEventListener('click', copyToClipboard);
+        canvas.addEventListener('click', handleCanvasClick);
+        document.addEventListener('keydown', handleKeyPress);
+        
+        // Key mappings for manual recording
+        const KEY_MAP = {
+            'd': 0, 'D': 0,
+            'f': 1, 'F': 1,
+            'j': 2, 'J': 2,
+            'k': 3, 'K': 3
+        };
+        
+        async function loadAudioFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            try {
+                // Initialize audio context
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                
+                // Load file
+                const arrayBuffer = await file.arrayBuffer();
+                audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                
+                // Create audio element for playback
+                audio = new Audio();
+                audio.src = URL.createObjectURL(file);
+                
+                // Update UI
+                analyzeBtn.disabled = false;
+                manualModeBtn.disabled = false;
+                playBtn.disabled = false;
+                duration.textContent = formatTime(audioBuffer.duration);
+                
+                // Draw waveform
+                drawWaveform();
+                
+                console.log('Audio loaded successfully');
+            } catch (error) {
+                console.error('Error loading audio:', error);
+                alert('Error loading audio file. Please try a different file.');
+            }
+        }
+        
+        function drawWaveform() {
+            const width = canvas.width;
+            const height = canvas.height;
+            const data = audioBuffer.getChannelData(0);
+            const step = Math.ceil(data.length / width);
+            
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, width, height);
+            
+            ctx.strokeStyle = '#00ffff';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            
+            for (let i = 0; i < width; i++) {
+                let min = 1.0;
+                let max = -1.0;
+                
+                for (let j = 0; j < step; j++) {
+                    const datum = data[(i * step) + j];
+                    if (datum < min) min = datum;
+                    if (datum > max) max = datum;
+                }
+                
+                const y1 = (1 + min) * height / 2;
+                const y2 = (1 + max) * height / 2;
+                
+                if (i === 0) {
+                    ctx.moveTo(i, y1);
+                } else {
+                    ctx.lineTo(i, y1);
+                }
+            }
+            
+            ctx.stroke();
+        }
+        
+        function analyzeBeats() {
+            if (!audioBuffer) return;
+            
+            const data = audioBuffer.getChannelData(0);
+            const sampleRate = audioBuffer.sampleRate;
+            const windowSize = 2048;
+            const hopSize = 512;
+            const thresh = parseFloat(sensitivity.value);
+            const minInt = parseInt(minInterval.value) / 1000;
+            
+            detectedBeats = [];
+            const energies = [];
+            
+            // Calculate energy for each window
+            for (let i = 0; i < data.length - windowSize; i += hopSize) {
+                const window = data.slice(i, i + windowSize);
+                const energy = calculateSpectralEnergy(window);
+                const time = i / sampleRate;
+                energies.push({ time, energy });
+            }
+            
+            // Find peaks using adaptive threshold
+            const windowLength = Math.floor(sampleRate / hopSize * 0.5); // 0.5 second window
+            
+            for (let i = windowLength; i < energies.length - windowLength; i++) {
+                const current = energies[i];
+                
+                // Calculate local average
+                let localSum = 0;
+                for (let j = i - windowLength; j < i + windowLength; j++) {
+                    localSum += energies[j].energy;
+                }
+                const localAvg = localSum / (windowLength * 2);
+                
+                // Check if current energy is a peak
+                const threshold = localAvg * thresh;
+                
+                if (current.energy > threshold && 
+                    current.energy > energies[i-1].energy && 
+                    current.energy > energies[i+1].energy) {
+                    
+                    // Check minimum interval
+                    if (detectedBeats.length === 0 || 
+                        current.time - detectedBeats[detectedBeats.length - 1].time > minInt) {
+                        
+                        detectedBeats.push({
+                            time: current.time,
+                            energy: current.energy,
+                            assigned: false,
+                            lane: null
+                        });
+                    }
+                }
+            }
+            
+            // Update UI
+            beatCount.textContent = detectedBeats.length;
+            autoAssignBtn.disabled = detectedBeats.length === 0;
+            drawBeats();
+            updateBeatList();
+            
+            console.log(`Detected ${detectedBeats.length} beats`);
+        }
+        
+        function calculateSpectralEnergy(window) {
+            // Apply Hamming window
+            const windowed = window.map((sample, i) => {
+                const hamming = 0.54 - 0.46 * Math.cos(2 * Math.PI * i / (window.length - 1));
+                return sample * hamming;
+            });
+            
+            // Calculate RMS energy
+            let sum = 0;
+            for (let i = 0; i < windowed.length; i++) {
+                sum += windowed[i] * windowed[i];
+            }
+            return Math.sqrt(sum / windowed.length);
+        }
+        
+        function drawBeats() {
+            // Redraw waveform first
+            drawWaveform();
+            
+            // Draw beats
+            detectedBeats.forEach(beat => {
+                const x = (beat.time / audioBuffer.duration) * canvas.width;
+                
+                ctx.fillStyle = beat.assigned ? '#ff6600' : '#ff0000';
+                ctx.beginPath();
+                ctx.arc(x, canvas.height / 2, 4, 0, 2 * Math.PI);
+                ctx.fill();
+                
+                if (beat.assigned) {
+                    ctx.fillStyle = '#fff';
+                    ctx.font = '12px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(['D', 'F', 'J', 'K'][beat.lane], x, canvas.height / 2 - 10);
+                }
+            });
+        }
+        
+        function updateBeatList() {
+            beatList.innerHTML = '';
+            
+            detectedBeats.forEach((beat, index) => {
+                const item = document.createElement('div');
+                item.className = `beat-item ${beat.assigned ? 'assigned' : ''}`;
+                
+                const timeSpan = document.createElement('span');
+                timeSpan.textContent = `${beat.time.toFixed(5)}s (${beat.energy.toFixed(3)})`;
+                
+                const laneButtons = document.createElement('div');
+                laneButtons.className = 'lane-buttons';
+                
+                ['D', 'F', 'J', 'K'].forEach((key, lane) => {
+                    const btn = document.createElement('button');
+                    btn.className = `lane-btn ${beat.lane === lane ? 'selected' : ''}`;
+                    btn.textContent = key;
+                    btn.onclick = () => assignBeatToLane(index, lane);
+                    laneButtons.appendChild(btn);
+                });
+                
+                const removeBtn = document.createElement('button');
+                removeBtn.textContent = '×';
+                removeBtn.style.marginLeft = '10px';
+                removeBtn.onclick = () => removeBeat(index);
+                
+                item.appendChild(timeSpan);
+                item.appendChild(laneButtons);
+                item.appendChild(removeBtn);
+                beatList.appendChild(item);
+            });
+        }
+        
+        function assignBeatToLane(beatIndex, lane) {
+            const beat = detectedBeats[beatIndex];
+            
+            if (beat.assigned && beat.lane === lane) {
+                // Unassign if clicking same lane
+                beat.assigned = false;
+                beat.lane = null;
+            } else {
+                // Assign to new lane
+                beat.assigned = true;
+                beat.lane = lane;
+            }
+            
+            updateAssignedCount();
+            drawBeats();
+            updateBeatList();
+            generateChart();
+        }
+        
+        function removeBeat(beatIndex) {
+            detectedBeats.splice(beatIndex, 1);
+            beatCount.textContent = detectedBeats.length;
+            autoAssignBtn.disabled = detectedBeats.length === 0;
+            updateAssignedCount();
+            drawBeats();
+            updateBeatList();
+            generateChart();
+        }
+        
+        function autoAssignBeats() {
+            if (detectedBeats.length === 0) return;
+            
+            // Clear existing assignments
+            detectedBeats.forEach(beat => {
+                beat.assigned = false;
+                beat.lane = null;
+            });
+            
+            // Sort beats by time
+            const sortedBeats = [...detectedBeats].sort((a, b) => a.time - b.time);
+            
+            // Auto-assign using different strategies
+            const strategy = getAutoAssignStrategy();
+            
+            switch(strategy) {
+                case 'alternating':
+                    autoAssignAlternating(sortedBeats);
+                    break;
+                case 'energy':
+                    autoAssignByEnergy(sortedBeats);
+                    break;
+                case 'pattern':
+                    autoAssignPattern(sortedBeats);
+                    break;
+                case 'random':
+                    autoAssignRandom(sortedBeats);
+                    break;
+                default:
+                    autoAssignAlternating(sortedBeats);
+            }
+            
+            updateAssignedCount();
+            drawBeats();
+            updateBeatList();
+            generateChart();
+            
+            console.log('Auto-assigned beats using', strategy, 'strategy');
+        }
+        
+        function getAutoAssignStrategy() {
+            // Simple heuristic: choose strategy based on beat density
+            const density = detectedBeats.length / audioBuffer.duration;
+            
+            if (density > 3) return 'alternating'; // High density - alternate lanes
+            if (density > 1.5) return 'pattern';   // Medium density - use patterns
+            return 'energy';                       // Low density - use energy-based
+        }
+        
+        function autoAssignAlternating(beats) {
+            // Simple left-to-right alternation: D, F, J, K, D, F, J, K...
+            beats.forEach((beat, index) => {
+                beat.assigned = true;
+                beat.lane = index % 4;
+            });
+        }
+        
+        function autoAssignByEnergy(beats) {
+            // Assign lanes based on energy levels
+            // Higher energy = outer lanes (D, K), lower energy = inner lanes (F, J)
+            const energies = beats.map(b => b.energy);
+            const maxEnergy = Math.max(...energies);
+            const minEnergy = Math.min(...energies);
+            const range = maxEnergy - minEnergy;
+            
+            beats.forEach(beat => {
+                const normalizedEnergy = (beat.energy - minEnergy) / range;
+                
+                if (normalizedEnergy > 0.75) {
+                    beat.lane = Math.random() < 0.5 ? 0 : 3; // D or K (outer)
+                } else if (normalizedEnergy > 0.5) {
+                    beat.lane = Math.random() < 0.5 ? 1 : 2; // F or J (inner)
+                } else if (normalizedEnergy > 0.25) {
+                    beat.lane = 1; // F
+                } else {
+                    beat.lane = 2; // J
+                }
+                
+                beat.assigned = true;
+            });
+        }
+        
+        function autoAssignPattern(beats) {
+            // Create interesting patterns based on musical phrases
+            const patterns = [
+                [0, 1, 2, 3],        // Linear
+                [0, 2, 1, 3],        // Cross
+                [0, 3, 1, 2],        // Wide spread
+                [1, 2, 1, 2],        // Center focus
+                [0, 1, 3, 2],        // Alternating
+                [2, 1, 0, 3],        // Reverse cross
+            ];
+            
+            let patternIndex = 0;
+            let beatInPattern = 0;
+            
+            beats.forEach(beat => {
+                const currentPattern = patterns[patternIndex];
+                beat.lane = currentPattern[beatInPattern];
+                beat.assigned = true;
+                
+                beatInPattern++;
+                if (beatInPattern >= currentPattern.length) {
+                    beatInPattern = 0;
+                    patternIndex = (patternIndex + 1) % patterns.length;
+                }
+            });
+        }
+        
+        function autoAssignRandom(beats) {
+            // Random but balanced assignment
+            const laneCount = [0, 0, 0, 0];
+            const targetPerLane = Math.ceil(beats.length / 4);
+            
+            beats.forEach(beat => {
+                // Find lanes that haven't reached the target
+                const availableLanes = [];
+                for (let i = 0; i < 4; i++) {
+                    if (laneCount[i] < targetPerLane) {
+                        availableLanes.push(i);
+                    }
+                }
+                
+                // If all lanes are full, use any lane
+                if (availableLanes.length === 0) {
+                    availableLanes.push(0, 1, 2, 3);
+                }
+                
+                // Pick random lane from available
+                const lane = availableLanes[Math.floor(Math.random() * availableLanes.length)];
+                beat.lane = lane;
+                beat.assigned = true;
+                laneCount[lane]++;
+            });
+        }
+        
+        function updateAssignedCount() {
+            const assigned = detectedBeats.filter(beat => beat.assigned).length;
+            assignedCount.textContent = assigned;
+        }
+        
+        function handleCanvasClick(event) {
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const time = (x / canvas.width) * audioBuffer.duration;
+            
+            // Find closest beat within 10 pixels
+            let closestBeat = null;
+            let closestDistance = Infinity;
+            
+            detectedBeats.forEach((beat, index) => {
+                const beatX = (beat.time / audioBuffer.duration) * canvas.width;
+                const distance = Math.abs(x - beatX);
+                
+                if (distance < 10 && distance < closestDistance) {
+                    closestBeat = index;
+                    closestDistance = distance;
+                }
+            });
+            
+            if (closestBeat !== null) {
+                // Cycle through lanes: unassigned -> D -> F -> J -> K -> unassigned
+                const beat = detectedBeats[closestBeat];
+                if (!beat.assigned) {
+                    assignBeatToLane(closestBeat, 0); // D
+                } else if (beat.lane < 3) {
+                    assignBeatToLane(closestBeat, beat.lane + 1);
+                } else {
+                    assignBeatToLane(closestBeat, null); // Unassign
+                }
+            }
+        }
+        
+        function generateChart() {
+            const chart = detectedBeats
+                .filter(beat => beat.assigned)
+                .map(beat => `[${beat.time.toFixed(5)}, ${beat.lane}]`)
+                .join(',\n            ');
+            
+            const output = `const NOTE_CHART = [
+            // Format: [time_in_seconds, lane]
+            ${chart}
+        ];`;
+            
+            chartOutput.value = output;
+        }
+        
+        function playAudio() {
+            if (!audio) return;
+            
+            audio.play();
+            isPlaying = true;
+            playBtn.disabled = true;
+            pauseBtn.disabled = false;
+            
+            // Start playhead animation
+            updatePlayhead();
+        }
+        
+        function pauseAudio() {
+            if (!audio) return;
+            
+            audio.pause();
+            isPlaying = false;
+            playBtn.disabled = false;
+            pauseBtn.disabled = true;
+            
+            if (animationFrame) {
+                cancelAnimationFrame(animationFrame);
+            }
+        }
+        
+        function updatePlayhead() {
+            if (!isPlaying || !audio) return;
+            
+            const progress = audio.currentTime / audio.duration;
+            const x = progress * canvas.width;
+            playhead.style.left = x + 'px';
+            
+            if (!audio.ended) {
+                animationFrame = requestAnimationFrame(updatePlayhead);
+            } else {
+                isPlaying = false;
+                playBtn.disabled = false;
+                pauseBtn.disabled = true;
+            }
+        }
+        
+        function exportChart() {
+            if (!chartOutput.value) {
+                alert('No chart to export. Please analyze beats and assign them to lanes first.');
+                return;
+            }
+            
+            const blob = new Blob([chartOutput.value], { type: 'text/javascript' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'note_chart.js';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        function copyToClipboard() {
+            if (!chartOutput.value) {
+                alert('No chart to copy.');
+                return;
+            }
+            
+            navigator.clipboard.writeText(chartOutput.value).then(() => {
+                alert('Chart copied to clipboard!');
+            });
+        }
+        
+        function toggleManualMode() {
+            manualMode = !manualMode;
+            
+            if (manualMode) {
+                // Start manual recording mode
+                manualNotes = [];
+                manualModeBtn.textContent = 'Stop Recording';
+                manualModeBtn.style.background = '#ff0000';
+                
+                // Disable other controls
+                analyzeBtn.disabled = true;
+                autoAssignBtn.disabled = true;
+                
+                // Show instructions
+                beatList.innerHTML = '<div style="color: #00ffff; font-weight: bold;">MANUAL MODE ACTIVE<br/>Play the song and press D, F, J, K keys to create notes!<br/>Notes will be recorded at the exact timing you press them.</div>';
+                
+                // Start recording if audio is playing
+                if (isPlaying) {
+                    recordingStartTime = audio.currentTime;
+                } else {
+                    recordingStartTime = 0;
+                }
+                
+                console.log('Manual recording mode started');
+            } else {
+                // Stop manual recording mode
+                manualModeBtn.textContent = 'Manual Notes';
+                manualModeBtn.style.background = '#00ffff';
+                
+                // Re-enable controls
+                analyzeBtn.disabled = false;
+                autoAssignBtn.disabled = detectedBeats.length === 0;
+                
+                // Convert manual notes to beat format
+                detectedBeats = manualNotes.map(note => ({
+                    time: Math.round(note.time * 100000) / 100000, // Ensure 5 decimal precision
+                    energy: 1.0, // Default energy for manual notes
+                    assigned: true,
+                    lane: note.lane
+                }));
+                
+                // Update UI
+                beatCount.textContent = detectedBeats.length;
+                updateAssignedCount();
+                drawBeats();
+                updateBeatList();
+                generateChart();
+                
+                console.log(`Manual recording stopped. Created ${manualNotes.length} notes`);
+            }
+        }
+        
+        function handleKeyPress(event) {
+            // Handle manual recording mode
+            if (manualMode) {
+                const lane = KEY_MAP[event.key];
+                if (lane !== undefined) {
+                    const currentTime = isPlaying ? audio.currentTime : 0;
+                    const preciseTime = Math.round(currentTime * 100000) / 100000; // 5 decimal precision
+                    
+                    manualNotes.push({
+                        time: preciseTime,
+                        lane: lane
+                    });
+                    
+                    // Visual feedback
+                    const keyName = ['D', 'F', 'J', 'K'][lane];
+                    console.log(`Recorded note: ${keyName} at ${preciseTime.toFixed(5)}s`);
+                    
+                    // Update live display
+                    const noteInfo = `${preciseTime.toFixed(5)}s - ${keyName}`;
+                    const currentDisplay = beatList.innerHTML;
+                    if (currentDisplay.includes('MANUAL MODE ACTIVE')) {
+                        beatList.innerHTML = currentDisplay + `<br/><span style="color: #ffff00;">${noteInfo}</span>`;
+                    }
+                    
+                    // Scroll to bottom
+                    beatList.scrollTop = beatList.scrollHeight;
+                }
+                return;
+            }
+        }
+        
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+    </script>
+</body>
+</html>
